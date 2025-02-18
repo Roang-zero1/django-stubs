@@ -49,11 +49,11 @@ _ErrorMessagesMapping: TypeAlias = Mapping[str, _StrOrPromise]
 _ErrorMessagesDict: TypeAlias = dict[str, _StrOrPromise]
 
 # __set__ value type
-_ST = TypeVar("_ST", contravariant=True)
+_ST_contra = TypeVar("_ST_contra", contravariant=True, default=Any)
 # __get__ return type
-_GT = TypeVar("_GT", covariant=True)
+_GT_co = TypeVar("_GT_co", covariant=True, default=Any)
 
-class Field(RegisterLookupMixin, Generic[_ST, _GT]):
+class Field(RegisterLookupMixin, Generic[_ST_contra, _GT_co]):
     """
     Typing model fields.
 
@@ -181,15 +181,15 @@ class Field(RegisterLookupMixin, Generic[_ST, _GT]):
         validators: Iterable[validators._ValidatorCallable] = (),
         error_messages: _ErrorMessagesMapping | None = None,
         db_comment: str | None = None,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
     ) -> None: ...
-    def __set__(self, instance: Any, value: _ST) -> None: ...
+    def __set__(self, instance: Any, value: _ST_contra) -> None: ...
     # class access
     @overload
     def __get__(self, instance: None, owner: Any) -> _FieldDescriptor[Self]: ...
     # Model instance access
     @overload
-    def __get__(self, instance: Model, owner: Any) -> _GT: ...
+    def __get__(self, instance: Model, owner: Any) -> _GT_co: ...
     # non-Model instances
     @overload
     def __get__(self, instance: Any, owner: Any) -> Self: ...
@@ -235,13 +235,16 @@ class Field(RegisterLookupMixin, Generic[_ST, _GT]):
     def get_col(self, alias: str, output_field: Field | None = None) -> Col: ...
     @cached_property
     def cached_col(self) -> Col: ...
-    def value_from_object(self, obj: Model) -> _GT: ...
+    def value_from_object(self, obj: Model) -> _GT_co: ...
     def get_attname(self) -> str: ...
     def get_attname_column(self) -> tuple[str, str]: ...
     def value_to_string(self, obj: Model) -> str: ...
     def slice_expression(self, expression: Expression, start: int, end: int | None) -> Func: ...
 
-class IntegerField(Field[_ST, _GT]):
+_INTEGERFIELDST_contra = TypeVar("_INTEGERFIELDST_contra", contravariant=True, default=float | int | str | Combinable)
+_INTEGERFIELDGT_co = TypeVar("_INTEGERFIELDGT_co", covariant=True, default=int)
+
+class IntegerField(Field[_INTEGERFIELDST_contra, _INTEGERFIELDGT_co]):
     _pyi_private_set_type: float | int | str | Combinable
     _pyi_private_get_type: int
     _pyi_lookup_exact_type: str | int
@@ -249,21 +252,33 @@ class IntegerField(Field[_ST, _GT]):
 class PositiveIntegerRelDbTypeMixin:
     def rel_db_type(self, connection: BaseDatabaseWrapper) -> str: ...
 
-class SmallIntegerField(IntegerField[_ST, _GT]): ...
+class SmallIntegerField(IntegerField[_INTEGERFIELDST_contra, _INTEGERFIELDGT_co]): ...
 
-class BigIntegerField(IntegerField[_ST, _GT]):
+class BigIntegerField(IntegerField[_INTEGERFIELDST_contra, _INTEGERFIELDGT_co]):
     MAX_BIGINT: ClassVar[int]
 
-class PositiveIntegerField(PositiveIntegerRelDbTypeMixin, IntegerField[_ST, _GT]): ...
-class PositiveSmallIntegerField(PositiveIntegerRelDbTypeMixin, SmallIntegerField[_ST, _GT]): ...
-class PositiveBigIntegerField(PositiveIntegerRelDbTypeMixin, BigIntegerField[_ST, _GT]): ...
+class PositiveIntegerField(PositiveIntegerRelDbTypeMixin, IntegerField[_INTEGERFIELDST_contra, _INTEGERFIELDGT_co]): ...
+class PositiveSmallIntegerField(
+    PositiveIntegerRelDbTypeMixin, SmallIntegerField[_INTEGERFIELDST_contra, _INTEGERFIELDGT_co]
+): ...
+class PositiveBigIntegerField(
+    PositiveIntegerRelDbTypeMixin, BigIntegerField[_INTEGERFIELDST_contra, _INTEGERFIELDGT_co]
+): ...
 
-class FloatField(Field[_ST, _GT]):
+_FLOATFIELDST_contra = TypeVar("_FLOATFIELDST_contra", contravariant=True, default=float | int | str | Combinable)
+_FLOATFIELDGT_co = TypeVar("_FLOATFIELDGT_co", covariant=True, default=float)
+
+class FloatField(Field[_FLOATFIELDST_contra, _FLOATFIELDGT_co]):
     _pyi_private_set_type: float | int | str | Combinable
     _pyi_private_get_type: float
     _pyi_lookup_exact_type: float
 
-class DecimalField(Field[_ST, _GT]):
+_DECIMALFIELDST_contra = TypeVar(
+    "_DECIMALFIELDST_contra", contravariant=True, default=str | float | decimal.Decimal | Combinable
+)
+_DECIMALFIELDGT_co = TypeVar("_DECIMALFIELDGT_co", covariant=True, default=decimal.Decimal)
+
+class DecimalField(Field[_DECIMALFIELDST_contra, _DECIMALFIELDGT_co]):
     _pyi_private_set_type: str | float | decimal.Decimal | Combinable
     _pyi_private_get_type: decimal.Decimal
     _pyi_lookup_exact_type: str | decimal.Decimal
@@ -283,7 +298,7 @@ class DecimalField(Field[_ST, _GT]):
         null: bool = ...,
         db_index: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -296,7 +311,10 @@ class DecimalField(Field[_ST, _GT]):
         error_messages: _ErrorMessagesMapping | None = ...,
     ) -> None: ...
 
-class CharField(Field[_ST, _GT]):
+_CHARFIELDST_contra = TypeVar("_CHARFIELDST_contra", contravariant=True, default=str | int | Combinable)
+_CHARFIELDGT_co = TypeVar("_CHARFIELDGT_co", covariant=True, default=str)
+
+class CharField(Field[_CHARFIELDST_contra, _CHARFIELDGT_co]):
     _pyi_private_set_type: str | int | Combinable
     _pyi_private_get_type: str
     # objects are converted to string before comparison
@@ -312,7 +330,7 @@ class CharField(Field[_ST, _GT]):
         null: bool = ...,
         db_index: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -330,9 +348,9 @@ class CharField(Field[_ST, _GT]):
         db_collation: str | None = None,
     ) -> None: ...
 
-class CommaSeparatedIntegerField(CharField[_ST, _GT]): ...
+class CommaSeparatedIntegerField(CharField[_CHARFIELDST_contra, _CHARFIELDGT_co]): ...
 
-class SlugField(CharField[_ST, _GT]):
+class SlugField(CharField[_CHARFIELDST_contra, _CHARFIELDGT_co]):
     def __init__(
         self,
         verbose_name: _StrOrPromise | None = ...,
@@ -342,7 +360,7 @@ class SlugField(CharField[_ST, _GT]):
         blank: bool = ...,
         null: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -362,10 +380,10 @@ class SlugField(CharField[_ST, _GT]):
         allow_unicode: bool = False,
     ) -> None: ...
 
-class EmailField(CharField[_ST, _GT]):
+class EmailField(CharField[_CHARFIELDST_contra, _CHARFIELDGT_co]):
     _pyi_private_set_type: str | Combinable
 
-class URLField(CharField[_ST, _GT]):
+class URLField(CharField[_CHARFIELDST_contra, _CHARFIELDGT_co]):
     def __init__(
         self,
         verbose_name: _StrOrPromise | None = None,
@@ -379,7 +397,7 @@ class URLField(CharField[_ST, _GT]):
         db_index: bool = ...,
         rel: ForeignObjectRel | None = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         serialize: bool = ...,
         unique_for_date: str | None = ...,
@@ -395,7 +413,10 @@ class URLField(CharField[_ST, _GT]):
         error_messages: _ErrorMessagesMapping | None = ...,
     ) -> None: ...
 
-class TextField(Field[_ST, _GT]):
+_TEXTFIELDST_contra = TypeVar("_TEXTFIELDST_contra", contravariant=True, default=str | Combinable)
+_TEXTFIELDGT_co = TypeVar("_TEXTFIELDGT_co", covariant=True, default=str)
+
+class TextField(Field[_TEXTFIELDST_contra, _TEXTFIELDGT_co]):
     _pyi_private_set_type: str | Combinable
     _pyi_private_get_type: str
     # objects are converted to string before comparison
@@ -411,7 +432,7 @@ class TextField(Field[_ST, _GT]):
         null: bool = ...,
         db_index: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -429,21 +450,36 @@ class TextField(Field[_ST, _GT]):
         db_collation: str | None = None,
     ) -> None: ...
 
-class BooleanField(Field[_ST, _GT]):
+_BOOLEANFIELDST_contra = TypeVar(
+    "_BOOLEANFIELDST_contra",
+    contravariant=True,
+    default=bool | Combinable,
+)
+_BOOLEANFIELDGT_co = TypeVar("_BOOLEANFIELDGT_co", covariant=True, default=bool)
+
+class BooleanField(Field[_BOOLEANFIELDST_contra, _BOOLEANFIELDGT_co]):
     _pyi_private_set_type: bool | Combinable
     _pyi_private_get_type: bool
     _pyi_lookup_exact_type: bool
 
-class NullBooleanField(BooleanField[_ST, _GT]):
+class NullBooleanField(BooleanField[_BOOLEANFIELDST_contra, _BOOLEANFIELDGT_co]):
     _pyi_private_set_type: bool | Combinable | None  # type: ignore[assignment]
     _pyi_private_get_type: bool | None  # type: ignore[assignment]
     _pyi_lookup_exact_type: bool | None  # type: ignore[assignment]
 
-class IPAddressField(Field[_ST, _GT]):
+_IPADDRESSFIELDST_contra = TypeVar("_IPADDRESSFIELDST_contra", contravariant=True, default=str | Combinable)
+_IPADDRESSFIELDGT_co = TypeVar("_IPADDRESSFIELDGT_co", covariant=True, default=str)
+
+class IPAddressField(Field[_IPADDRESSFIELDST_contra, _IPADDRESSFIELDGT_co]):
     _pyi_private_set_type: str | Combinable
     _pyi_private_get_type: str
 
-class GenericIPAddressField(Field[_ST, _GT]):
+_GENERICIPADDRESSFIELDST_contra = TypeVar(
+    "_GENERICIPADDRESSFIELDST_contra", contravariant=True, default=str | int | Callable[..., Any] | Combinable
+)
+_GENERICIPADDRESSFIELDGT_co = TypeVar("_GENERICIPADDRESSFIELDGT_co", covariant=True, default=str)
+
+class GenericIPAddressField(Field[_GENERICIPADDRESSFIELDST_contra, _GENERICIPADDRESSFIELDGT_co]):
     _pyi_private_set_type: str | int | Callable[..., Any] | Combinable
     _pyi_private_get_type: str
 
@@ -462,7 +498,7 @@ class GenericIPAddressField(Field[_ST, _GT]):
         null: bool = ...,
         db_index: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -477,7 +513,10 @@ class GenericIPAddressField(Field[_ST, _GT]):
 
 class DateTimeCheckMixin: ...
 
-class DateField(DateTimeCheckMixin, Field[_ST, _GT]):
+_DATEFIELDST_contra = TypeVar("_DATEFIELDST_contra", contravariant=True, default=str | date | Combinable)
+_DATEFIELDGT_co = TypeVar("_DATEFIELDGT_co", covariant=True, default=date)
+
+class DateField(DateTimeCheckMixin, Field[_DATEFIELDST_contra, _DATEFIELDGT_co]):
     _pyi_private_set_type: str | date | Combinable
     _pyi_private_get_type: date
     _pyi_lookup_exact_type: str | date
@@ -497,7 +536,7 @@ class DateField(DateTimeCheckMixin, Field[_ST, _GT]):
         null: bool = ...,
         db_index: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -510,7 +549,12 @@ class DateField(DateTimeCheckMixin, Field[_ST, _GT]):
         error_messages: _ErrorMessagesMapping | None = ...,
     ) -> None: ...
 
-class TimeField(DateTimeCheckMixin, Field[_ST, _GT]):
+_TIMEFIELDST_contra = TypeVar(
+    "_TIMEFIELDST_contra", contravariant=True, default=str | time | real_datetime | Combinable
+)
+_TIMEFIELDGT_co = TypeVar("_TIMEFIELDGT_co", covariant=True, default=time)
+
+class TimeField(DateTimeCheckMixin, Field[_TIMEFIELDST_contra, _TIMEFIELDGT_co]):
     _pyi_private_set_type: str | time | real_datetime | Combinable
     _pyi_private_get_type: time
     auto_now: bool
@@ -528,7 +572,7 @@ class TimeField(DateTimeCheckMixin, Field[_ST, _GT]):
         null: bool = ...,
         db_index: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -541,12 +585,20 @@ class TimeField(DateTimeCheckMixin, Field[_ST, _GT]):
         error_messages: _ErrorMessagesMapping | None = ...,
     ) -> None: ...
 
-class DateTimeField(DateField[_ST, _GT]):
+_DATETIMEFIELDST_contra = TypeVar(
+    "_DATETIMEFIELDST_contra", contravariant=True, default=str | time | real_datetime | Combinable
+)
+_DATETIMEFIELDGT_co = TypeVar("_DATETIMEFIELDGT_co", covariant=True, default=real_datetime)
+
+class DateTimeField(DateField[_DATETIMEFIELDST_contra, _DATETIMEFIELDGT_co]):
     _pyi_private_set_type: str | real_datetime | date | Combinable
     _pyi_private_get_type: real_datetime
     _pyi_lookup_exact_type: str | real_datetime
 
-class UUIDField(Field[_ST, _GT]):
+_UUIDFIELDST_contra = TypeVar("_UUIDFIELDST_contra", contravariant=True, default=str | uuid.UUID)
+_UUIDFIELDGT_co = TypeVar("_UUIDFIELDGT_co", covariant=True, default=uuid.UUID)
+
+class UUIDField(Field[_UUIDFIELDST_contra, _UUIDFIELDGT_co]):
     _pyi_private_set_type: str | uuid.UUID
     _pyi_private_get_type: uuid.UUID
     _pyi_lookup_exact_type: uuid.UUID | str
@@ -563,7 +615,7 @@ class UUIDField(Field[_ST, _GT]):
         db_index: bool = ...,
         rel: ForeignObjectRel | None = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         serialize: bool = ...,
         unique_for_date: str | None = ...,
@@ -579,7 +631,7 @@ class UUIDField(Field[_ST, _GT]):
         error_messages: _ErrorMessagesMapping | None = ...,
     ) -> None: ...
 
-class FilePathField(Field[_ST, _GT]):
+class FilePathField(Field[_ST_contra, _GT_co]):
     path: Any
     match: str | None
     recursive: bool
@@ -602,7 +654,7 @@ class FilePathField(Field[_ST, _GT]):
         null: bool = ...,
         db_index: bool = ...,
         default: Any = ...,
-        db_default: type[NOT_PROVIDED] | Expression | _ST = ...,
+        db_default: type[NOT_PROVIDED] | Expression | _ST_contra = ...,
         editable: bool = ...,
         auto_created: bool = ...,
         serialize: bool = ...,
@@ -615,10 +667,14 @@ class FilePathField(Field[_ST, _GT]):
         error_messages: _ErrorMessagesMapping | None = ...,
     ) -> None: ...
 
-class BinaryField(Field[_ST, _GT]):
+_BINARYFIELDGT_co = TypeVar("_BINARYFIELDGT_co", covariant=True, default=bytes | memoryview)
+
+class BinaryField(Field[_ST_contra, _BINARYFIELDGT_co]):
     _pyi_private_get_type: bytes | memoryview
 
-class DurationField(Field[_ST, _GT]):
+_DURATIONFIELDGT_co = TypeVar("_DURATIONFIELDGT_co", covariant=True, default=timedelta)
+
+class DurationField(Field[_ST_contra, _DURATIONFIELDGT_co]):
     _pyi_private_get_type: timedelta
 
 class AutoFieldMixin:
@@ -627,10 +683,13 @@ class AutoFieldMixin:
 
 class AutoFieldMeta(type): ...
 
-class AutoField(AutoFieldMixin, IntegerField[_ST, _GT], metaclass=AutoFieldMeta):
+_AUTOFIELDST_contra = TypeVar("_AUTOFIELDST_contra", contravariant=True, default=Combinable | int | str)
+_AUTOFIELDGT_co = TypeVar("_AUTOFIELDGT_co", covariant=True, default=int)
+
+class AutoField(AutoFieldMixin, IntegerField[_AUTOFIELDST_contra, _AUTOFIELDGT_co], metaclass=AutoFieldMeta):
     _pyi_private_set_type: Combinable | int | str
     _pyi_private_get_type: int
     _pyi_lookup_exact_type: str | int
 
-class BigAutoField(AutoFieldMixin, BigIntegerField[_ST, _GT]): ...
-class SmallAutoField(AutoFieldMixin, SmallIntegerField[_ST, _GT]): ...
+class BigAutoField(AutoFieldMixin, BigIntegerField[_AUTOFIELDST_contra, _AUTOFIELDGT_co]): ...
+class SmallAutoField(AutoFieldMixin, SmallIntegerField[_AUTOFIELDST_contra, _AUTOFIELDGT_co]): ...
